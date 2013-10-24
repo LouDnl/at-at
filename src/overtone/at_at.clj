@@ -4,8 +4,10 @@
 
 (defrecord PoolInfo [thread-pool jobs-ref id-count-ref])
 (defrecord MutablePool [pool-atom])
-(defrecord RecurringJob [id created-at ms-period initial-delay job pool-info desc scheduled?])
-(defrecord ScheduledJob [id created-at initial-delay job pool-info desc scheduled?])
+(defrecord RecurringJob [id created-at ms-period initial-delay job pool-info desc scheduled?
+                         re-throw-caught-exceptions?])
+(defrecord ScheduledJob [id created-at initial-delay job pool-info desc scheduled?
+                         re-throw-caught-exceptions?])
 
 (defn- format-date
   "Format date object as a string such as: 15:23:35s"
@@ -30,7 +32,8 @@
                  ", ms-period: " (:ms-period obj)
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">")))
+                 ", scheduled? " @(:scheduled? obj) ">"
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj))))
 
 (defmethod print-method ScheduledJob
   [obj ^Writer w]
@@ -38,7 +41,8 @@
                  ", created-at: " (format-date (:created-at obj))
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">")))
+                 ", scheduled? " @(:scheduled? obj) ">"
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj))))
 
 (defn- switch!
   "Sets the value of atom to new-val. Similar to reset! except returns the
@@ -65,12 +69,13 @@
       (catch Exception e
         (println (str e " thrown by at-at task: " (job-string @job-info-prom)))
         (.printStackTrace e)
-        (throw e)))))
+        (when (:re-throw-caught-exceptions? @job-info-prom)
+          (throw e))))))
 
 (defn- schedule-job
   "Schedule the fun to execute periodically in pool-info's pool with the
   specified initial-delay and ms-period. Returns a RecurringJob record."
-  [pool-info fun initial-delay ms-period desc interspaced?]
+  [pool-info fun initial-delay ms-period desc interspaced? re-throw-caught-exceptions?]
   (let [initial-delay (long initial-delay)
         ms-period     (long ms-period)
         ^ScheduledThreadPoolExecutor t-pool (:thread-pool pool-info)
@@ -99,7 +104,8 @@
                                                       job
                                                       pool-info
                                                       desc
-                                                      (atom true))]
+                                                      (atom true)
+                                                      re-throw-caught-exceptions?)]
                           (commute jobs-ref assoc id job-info)
                           job-info))]
     (deliver job-info-prom job-info)
@@ -119,7 +125,7 @@
 (defn- schedule-at
   "Schedule the fun to execute once in the pool-info's pool after the
   specified initial-delay. Returns a ScheduledJob record."
-  [pool-info fun initial-delay desc]
+  [pool-info fun initial-delay desc re-throw-caught-exceptions?]
   (let [initial-delay (long initial-delay)
         ^ScheduledThreadPoolExecutor t-pool (:thread-pool pool-info)
         jobs-ref      (:jobs-ref pool-info)
@@ -138,7 +144,8 @@
                                                      job
                                                      pool-info
                                                      desc
-                                                     (atom true))]
+                                                     (atom true)
+                                                     re-throw-caught-exceptions?)]
                          (commute jobs-ref assoc id job-info)
                          job-info))]
     (deliver job-info-prom job-info)
@@ -196,10 +203,11 @@
 
   Default options are
   {:initial-delay 0 :desc \"\"}"
-  [ms-period fun pool & {:keys [initial-delay desc]
+  [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
-                              desc ""}}]
-  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc false))
+                              desc ""
+                              re-throw-caught-exceptions? false}}]
+  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc false re-throw-caught-exceptions?))
 
 (defn interspaced
   "Calls fun repeatedly with an interspacing of ms-period, i.e. the next
@@ -210,10 +218,11 @@
 
    Default options are
    {:initial-delay 0 :desc \"\"}"
-  [ms-period fun pool & {:keys [initial-delay desc]
+  [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
-                              desc ""}}]
-  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc true))
+                              desc ""
+                              re-throw-caught-exceptions? false}}]
+  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc true re-throw-caught-exceptions?))
 
 (defn now
   "Return the current time in ms"
@@ -229,11 +238,12 @@
       #(println \"hello from the past\")
       pool
       :desc \"Message from the past\") ;=> prints 1s from now"
-  [ms-time fun pool & {:keys [desc]
-                       :or {desc ""}}]
+  [ms-time fun pool & {:keys [desc re-throw-caught-exceptions?]
+                       :or {desc ""
+                            re-throw-caught-exceptions? false}}]
   (let [initial-delay (- ms-time (now))
         pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun initial-delay desc)))
+    (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions?)))
 
 (defn after
   "Schedules fun to be executed after delay-ms (in
@@ -244,10 +254,11 @@
       #(println \"hello from the past\")
       pool
       :desc \"Message from the past\") ;=> prints 1s from now"
-  [delay-ms fun pool & {:keys [desc]
-                       :or {desc ""}}]
+  [delay-ms fun pool & {:keys [desc re-throw-caught-exceptions?]
+                        :or {desc ""
+                             re-throw-caught-exceptions? false}}]
   (let [pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun delay-ms desc)))
+    (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions?)))
 
 (defn shutdown-pool!
   [pool-info strategy]
