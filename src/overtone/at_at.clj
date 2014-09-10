@@ -206,7 +206,7 @@
   [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
                               desc ""
-                              re-throw-caught-exceptions? false}}]
+                              re-throw-caught-exceptions? true}}]
   (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc false re-throw-caught-exceptions?))
 
 (defn interspaced
@@ -221,7 +221,7 @@
   [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
                               desc ""
-                              re-throw-caught-exceptions? false}}]
+                              re-throw-caught-exceptions? true}}]
   (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc true re-throw-caught-exceptions?))
 
 (defn now
@@ -240,7 +240,7 @@
       :desc \"Message from the past\") ;=> prints 1s from now"
   [ms-time fun pool & {:keys [desc re-throw-caught-exceptions?]
                        :or {desc ""
-                            re-throw-caught-exceptions? false}}]
+                            re-throw-caught-exceptions? true}}]
   (let [initial-delay (- ms-time (now))
         pool-info  @(:pool-atom pool)]
     (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions?)))
@@ -256,7 +256,7 @@
       :desc \"Message from the past\") ;=> prints 1s from now"
   [delay-ms fun pool & {:keys [desc re-throw-caught-exceptions?]
                         :or {desc ""
-                             re-throw-caught-exceptions? false}}]
+                             re-throw-caught-exceptions? true}}]
   (let [pool-info  @(:pool-atom pool)]
     (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions?)))
 
