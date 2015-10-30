@@ -10,7 +10,7 @@
 (defn- format-date
   "Format date object as a string such as: 15:23:35s"
   [date]
-  (.format (java.text.SimpleDateFormat. "EEE hh':'mm':'ss's'") date))
+  (.format (java.text.SimpleDateFormat. "EEE HH':'mm':'ss's'") date))
 
 (defmethod print-method PoolInfo
   [obj ^Writer w]
