@@ -62,7 +62,7 @@
       old-val
       (recur atom new-val))))
 
-(defn- cpu-count
+(defn- cpu-count ; NOTE - unused
   "Returns the number of CPUs on this machine."
   []
   (.availableProcessors (Runtime/getRuntime)))
@@ -199,7 +199,7 @@
   "Returns MutablePool record storing a mutable reference (atom) to a
   PoolInfo record which contains a newly created pool of threads to
   schedule new events for. Pool size defaults to the cpu count + 2."
-  [& {:keys [cpu-count stop-delayed? stop-periodic?]
+  [& {:keys [cpu-count stop-delayed? stop-periodic?]  ; NOTE - are stop-delayed? stop-periodic? unused
       :or {cpu-count (+ 2 (cpu-count))}}]
   (MutablePool. (atom (mk-pool-info (mk-sched-thread-pool cpu-count)))))
 
@@ -308,7 +308,7 @@
     (let [job       (:job job-info)
           id        (:id job-info)
           pool-info (:pool-info job-info)
-          pool      (:thread-pool pool-info)
+          pool      (:thread-pool pool-info) ; NOTE - unused
           jobs-ref  (:jobs-ref pool-info)]
       (.cancel ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask job cancel-immediately?)
       (reset! (:scheduled? job-info) false)
