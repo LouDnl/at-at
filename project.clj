@@ -1,4 +1,4 @@
-(defproject overtone/at-at "1.4.0"
+(defproject org.clojars.loud/at-at "1.4.0"
   :description "Ahead-of-time function scheduler"
   :url "https://github.com/LouDnl/at-at"
   :license {:name "Eclipse Public License"
