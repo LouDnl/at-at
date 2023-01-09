@@ -1,6 +1,9 @@
 *
 !src
 !src/**
+!test
+!test/**
+!.clj-kondo
 !.clj-kondo/config.edn
 !LICENSE
 !README.md
