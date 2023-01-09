@@ -31,6 +31,25 @@
 
 Simple ahead-of-time function scheduler. Allows you to schedule the execution of an anonymous function for a point in the future.
 
+### Adaption and addition
+
+This is an updated fork of [overtone/at-at](https://github.com/overtone/at-at). All credits go to [overtone](https://github.com/overtone).
+
+Commits were cherry-picked from open pull-requests and forks. \
+Credits:
+- [adamneilson](https://github.com/adamneilson)
+- [alekcz](https://github.com/alekcz)
+- [bmabey](https://github.com/bmabey)
+- [djui](https://github.com/djui)
+- [dmac](https://github.com/dmac)
+- [EdwardBetts](https://github.com/EdwardBetts)
+- [jwhitbeck](https://github.com/jwhitbeck)
+- [karolinepauls](https://github.com/karolinepauls)
+- [thomas-shares](https://github.com/thomas-shares)
+
+#### Unit testing
+Run `lein all test` to run all unit tests
+
 ### Basic Usage
 
 First pull in the lib:
@@ -61,6 +80,17 @@ Another way of achieving the same result is to use `after` which takes a delaty 
 (after 1000 #(println "hello from the past!") my-pool)
 ```
 
+If you want a scheduled function to be unique, it is possible to pass a uid string to both scheduled job functions.
+
+Will throw an Exception error when you try to schedule a job with the same uid:
+
+```clj
+(after 1000 #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; schedules function
+(at (+ 1000 (now)) #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; will throw an Execution error
+; Execution error at overtone.at-at/at (at_at.clj:281).
+; Error: Unable to schedule job with uid my-unique-identifier, job is already scheduled.0
+```
+
 You can also schedule functions to occur periodically. Here we schedule the function to execute every second:
 
 ```clj
@@ -75,7 +105,7 @@ This returns a scheduled-fn which may easily be stopped `stop`:
 
 Or more forcefully killed with `kill`.
 
-It's also possible to start a periodic repeating fn with an inital delay:
+It's also possible to start a periodic repeating fn with an initial delay:
 
 ```clj
 (every 1000 #(println "I am cool!") my-pool :initial-delay 2000)
@@ -87,7 +117,7 @@ Finally, you can also schedule tasks for a fixed delay (vs a rate):
 (interspaced 1000 #(println "I am cool!") my-pool)
 ```
 
-This means that it will wait 1000 ms after the task is completed before 
+This means that it will wait 1000 ms after the task is completed before
 starting the next one.
 
 ### Resetting a pool.

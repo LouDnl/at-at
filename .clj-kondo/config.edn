@@ -1,0 +1,3 @@
+{:linters {:unused-private-var {:level :off}
+           :clojure-lsp/unused-public-var {:exclude-regex #{"overtone.*"}}}
+ :skip-comments true}

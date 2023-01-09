@@ -1,16 +1,22 @@
 (ns overtone.at-at
+  (:require [clojure.pprint :as pprint])
   (:import [java.util.concurrent ScheduledThreadPoolExecutor TimeUnit ThreadPoolExecutor]
            [java.io Writer]))
 
+(set! *warn-on-reflection* true)
+
 (defrecord PoolInfo [thread-pool jobs-ref id-count-ref])
 (defrecord MutablePool [pool-atom])
-(defrecord RecurringJob [id created-at ms-period initial-delay job pool-info desc scheduled?])
-(defrecord ScheduledJob [id created-at initial-delay job pool-info desc scheduled?])
+(defrecord RecurringJob [id created-at ms-period initial-delay job pool-info desc scheduled?
+                         re-throw-caught-exceptions?])
+(defrecord ScheduledJob [id created-at initial-delay job pool-info desc scheduled?
+                         re-throw-caught-exceptions?
+                         uid])
 
 (defn- format-date
   "Format date object as a string such as: 15:23:35s"
   [date]
-  (.format (java.text.SimpleDateFormat. "EEE hh':'mm':'ss's'") date))
+  (.format (java.text.SimpleDateFormat. "EEE HH':'mm':'ss's'") date))
 
 (defmethod print-method PoolInfo
   [obj ^Writer w]
@@ -30,7 +36,9 @@
                  ", ms-period: " (:ms-period obj)
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">")))
+                 ", scheduled? " @(:scheduled? obj)
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj)
+                 ">")))
 
 (defmethod print-method ScheduledJob
   [obj ^Writer w]
@@ -38,7 +46,15 @@
                  ", created-at: " (format-date (:created-at obj))
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">")))
+                 ", scheduled? " @(:scheduled? obj)
+                 ", uid: " (:uid obj)
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj)
+                  ">")))
+
+(defmethod pprint/simple-dispatch PoolInfo [this] (pr this))
+(defmethod pprint/simple-dispatch MutablePool [this] (pr this))
+(defmethod pprint/simple-dispatch RecurringJob [this] (pr this))
+(defmethod pprint/simple-dispatch ScheduledJob [this] (pr this))
 
 (defn- switch!
   "Sets the value of atom to new-val. Similar to reset! except returns the
@@ -50,20 +66,33 @@
       old-val
       (recur atom new-val))))
 
-(defn- cpu-count
+(defn- cpu-count ; NOTE - unused
   "Returns the number of CPUs on this machine."
   []
   (.availableProcessors (Runtime/getRuntime)))
 
+(declare job-string)
 
+(defn- wrap-fun-with-exception-handler
+  [fun job-info-prom]
+  (fn [& args]
+    (try
+      (apply fun args)
+      (catch Exception e
+        (println (str e " thrown by at-at task: " (job-string @job-info-prom)))
+        (.printStackTrace e)
+        (when (:re-throw-caught-exceptions? @job-info-prom)
+          (throw e))))))
 
 (defn- schedule-job
   "Schedule the fun to execute periodically in pool-info's pool with the
   specified initial-delay and ms-period. Returns a RecurringJob record."
-  [pool-info fun initial-delay ms-period desc interspaced?]
+  [pool-info fun initial-delay ms-period desc interspaced? re-throw-caught-exceptions?]
   (let [initial-delay (long initial-delay)
         ms-period     (long ms-period)
         ^ScheduledThreadPoolExecutor t-pool (:thread-pool pool-info)
+        job-info-prom (promise)
+        ^Callable fun (wrap-fun-with-exception-handler fun job-info-prom)
         job           (if interspaced?
                         (.scheduleWithFixedDelay t-pool
                                                  fun
@@ -77,19 +106,22 @@
                                               TimeUnit/MILLISECONDS))
         start-time    (System/currentTimeMillis)
         jobs-ref      (:jobs-ref pool-info)
-        id-count-ref  (:id-count-ref pool-info)]
-    (dosync
-     (let [id       (commute id-count-ref inc)
-           job-info (RecurringJob. id
-                                   start-time
-                                   ms-period
-                                   initial-delay
-                                   job
-                                   pool-info
-                                   desc
-                                   (atom true))]
-       (commute jobs-ref assoc id job-info)
-       job-info))))
+        id-count-ref  (:id-count-ref pool-info)
+        job-info      (dosync
+                        (let [id       (commute id-count-ref inc)
+                              job-info (RecurringJob. id
+                                                      start-time
+                                                      ms-period
+                                                      initial-delay
+                                                      job
+                                                      pool-info
+                                                      desc
+                                                      (atom true)
+                                                      re-throw-caught-exceptions?)]
+                          (commute jobs-ref assoc id job-info)
+                          job-info))]
+    (deliver job-info-prom job-info)
+    job-info))
 
 (defn- wrap-fun-to-remove-itself
   [fun jobs-ref job-info-prom]
@@ -105,12 +137,14 @@
 (defn- schedule-at
   "Schedule the fun to execute once in the pool-info's pool after the
   specified initial-delay. Returns a ScheduledJob record."
-  [pool-info fun initial-delay desc]
+  [pool-info fun initial-delay desc re-throw-caught-exceptions? uid]
   (let [initial-delay (long initial-delay)
         ^ScheduledThreadPoolExecutor t-pool (:thread-pool pool-info)
         jobs-ref      (:jobs-ref pool-info)
-        id-prom       (promise)
-        ^Callable fun (wrap-fun-to-remove-itself fun jobs-ref id-prom)
+        job-info-prom (promise)
+        ^Callable fun (-> fun
+                          (wrap-fun-with-exception-handler job-info-prom)
+                          (wrap-fun-to-remove-itself jobs-ref job-info-prom))
         job           (.schedule t-pool fun initial-delay TimeUnit/MILLISECONDS)
         start-time    (System/currentTimeMillis)
         id-count-ref  (:id-count-ref pool-info)
@@ -122,16 +156,18 @@
                                                      job
                                                      pool-info
                                                      desc
-                                                     (atom true))]
+                                                     (atom true)
+                                                     re-throw-caught-exceptions?
+                                                     uid)]
                          (commute jobs-ref assoc id job-info)
                          job-info))]
-    (deliver id-prom job-info)
+    (deliver job-info-prom job-info)
     job-info))
 
 (defn- shutdown-pool-now!
   "Shut the pool down NOW!"
   [pool-info]
-  (.shutdownNow (:thread-pool pool-info))
+  (.shutdownNow ^ScheduledThreadPoolExecutor (:thread-pool pool-info))
   (doseq [job (vals @(:jobs-ref pool-info))]
     (reset! (:scheduled? job) false)))
 
@@ -139,17 +175,16 @@
   "Shut the pool down gracefully - waits until all previously
   submitted jobs have completed"
   [pool-info]
-  (.shutdown (:thread-pool pool-info))
+  (.shutdown ^ScheduledThreadPoolExecutor (:thread-pool pool-info))
   (let [jobs (vals @(:jobs-ref pool-info))]
     (future
       (loop [jobs jobs]
         (doseq [job jobs]
           (when (and @(:scheduled? job)
-                     (or
-                      (.isCancelled (:job job))
-                      (.isDone (:job job))))
-            (reset! (:scheduled? job) false)))
-
+                      (or
+                       (.isCancelled ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask (:job job))
+                       (.isDone ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask (:job job))))
+               (reset! (:scheduled? job) false)))
         (when-let [jobs (filter (fn [j] @(:scheduled? j)) jobs)]
           (Thread/sleep 500)
           (when (seq jobs)
@@ -169,7 +204,7 @@
   "Returns MutablePool record storing a mutable reference (atom) to a
   PoolInfo record which contains a newly created pool of threads to
   schedule new events for. Pool size defaults to the cpu count + 2."
-  [& {:keys [cpu-count stop-delayed? stop-periodic?]
+  [& {:keys [cpu-count stop-delayed? stop-periodic?]  ; NOTE - are stop-delayed? stop-periodic? unused
       :or {cpu-count (+ 2 (cpu-count))}}]
   (MutablePool. (atom (mk-pool-info (mk-sched-thread-pool cpu-count)))))
 
@@ -180,10 +215,11 @@
 
   Default options are
   {:initial-delay 0 :desc \"\"}"
-  [ms-period fun pool & {:keys [initial-delay desc]
+  [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
-                              desc ""}}]
-  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc false))
+                              desc ""
+                              re-throw-caught-exceptions? true}}]
+  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc false re-throw-caught-exceptions?))
 
 (defn interspaced
   "Calls fun repeatedly with an interspacing of ms-period, i.e. the next
@@ -194,15 +230,32 @@
 
    Default options are
    {:initial-delay 0 :desc \"\"}"
-  [ms-period fun pool & {:keys [initial-delay desc]
+  [ms-period fun pool & {:keys [initial-delay desc re-throw-caught-exceptions?]
                          :or {initial-delay 0
-                              desc ""}}]
-  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc true))
+                              desc ""
+                              re-throw-caught-exceptions? true}}]
+  (schedule-job @(:pool-atom pool) fun initial-delay ms-period desc true re-throw-caught-exceptions?))
 
 (defn now
   "Return the current time in ms"
   []
   (System/currentTimeMillis))
+
+(declare scheduled-jobs)
+
+(defn- scheduled?!
+  "## Checks if a job is already scheduled by its uid
+   Returns true if so, false if not"
+  [uid pool]
+  (try
+    (apply boolean
+           (keep
+            (fn [job]
+              (when
+               (= (:uid job) uid)
+                true))
+            (scheduled-jobs pool)))
+    (catch Exception _ false)))
 
 (defn at
   "Schedules fun to be executed at ms-time (in milliseconds).
@@ -212,12 +265,20 @@
   (at (+ 1000 (now))
       #(println \"hello from the past\")
       pool
-      :desc \"Message from the past\") ;=> prints 1s from now"
-  [ms-time fun pool & {:keys [desc]
-                       :or {desc ""}}]
+      :desc \"Message from the past\"
+      :uid unique identifier as string (optional)) ;=> prints 1s from now"
+  [ms-time fun pool & {:keys [desc re-throw-caught-exceptions? uid]
+                       :or {desc ""
+                            re-throw-caught-exceptions? true
+                            uid false}}]
   (let [initial-delay (- ms-time (now))
-        pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun initial-delay desc)))
+        pool-info  @(:pool-atom pool)
+        scheduled? (scheduled?! uid pool)]
+    (if-not uid
+      (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions? (str (gensym)))
+      (if-not scheduled?
+        (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions? uid)
+        (throw (Exception. (str "Error: Unable to schedule job with uid " uid ", job is already scheduled.")))))))
 
 (defn after
   "Schedules fun to be executed after delay-ms (in
@@ -227,13 +288,21 @@
   (after 1000
       #(println \"hello from the past\")
       pool
-      :desc \"Message from the past\") ;=> prints 1s from now"
-  [delay-ms fun pool & {:keys [desc]
-                       :or {desc ""}}]
-  (let [pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun delay-ms desc)))
+      :desc \"Message from the past\"
+      :uid unique identifier as string (optional)) ;=> prints 1s from now"
+  [delay-ms fun pool & {:keys [desc re-throw-caught-exceptions? uid]
+                        :or {desc ""
+                             re-throw-caught-exceptions? true
+                             uid false}}]
+  (let [pool-info  @(:pool-atom pool)
+        scheduled? (scheduled?! uid pool)]
+    (if-not uid
+      (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions? (str (gensym)))
+      (if-not scheduled?
+        (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions? uid)
+        (throw (Exception. (str "Error: Unable to schedule job with uid " uid ", job is already scheduled.")))))))
 
-(defn- shutdown-pool!
+(defn shutdown-pool!
   [pool-info strategy]
   (case strategy
     :stop (shutdown-pool-gracefully! pool-info)
@@ -274,9 +343,9 @@
     (let [job       (:job job-info)
           id        (:id job-info)
           pool-info (:pool-info job-info)
-          pool      (:thread-pool pool-info)
+          pool      (:thread-pool pool-info) ; NOTE - unused
           jobs-ref  (:jobs-ref pool-info)]
-      (.cancel job cancel-immediately?)
+      (.cancel ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask job cancel-immediately?)
       (reset! (:scheduled? job-info) false)
       (dosync
        (let [job (get @jobs-ref id)]
@@ -326,13 +395,14 @@
        "[RECUR] created: " (format-date (:created-at job))
        (format-start-time (+ (:created-at job) (:initial-delay job)))
        ", period: " (:ms-period job) "ms"
-       ",  desc: \""(:desc job) "\""))
+       ", desc: \""(:desc job) "\""))
 
 (defn- scheduled-job-string
   [job]
   (str "[" (:id job) "]"
        "[SCHED] created: " (format-date (:created-at job))
        (format-start-time (+ (:created-at job) (:initial-delay job)))
+       ", uid: \"" (:uid job) "\""
        ", desc: \"" (:desc job) "\""))
 
 (defn- job-string
@@ -344,8 +414,8 @@
 (defn show-schedule
   "Pretty print all of the pool's scheduled jobs"
   ([pool]
-     (let [jobs (scheduled-jobs pool)]
-       (if (empty? jobs)
-         (println "No jobs are currently scheduled.")
-         (dorun
-          (map #(println (job-string %)) jobs))))))
+   (let [jobs (scheduled-jobs pool)]
+     (if (empty? jobs)
+       (println "No jobs are currently scheduled.")
+       (dorun
+        (map #(println (job-string %)) jobs))))))
