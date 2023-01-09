@@ -47,6 +47,9 @@ Credits:
 - [karolinepauls](https://github.com/karolinepauls)
 - [thomas-shares](https://github.com/thomas-shares)
 
+#### Unit testing
+Run `lein all test` to run all unit tests
+
 ### Basic Usage
 
 First pull in the lib:
