@@ -61,6 +61,17 @@ Another way of achieving the same result is to use `after` which takes a delaty 
 (after 1000 #(println "hello from the past!") my-pool)
 ```
 
+If you want a scheduled function to be unique, it is possible to pass a uid string to both scheduled job functions.
+
+Will throw an Exception error when you try to schedule a job with the same uid:
+
+```clj
+(after 1000 #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; schedules function
+(at (+ 1000 (now)) #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; will throw an Execution error
+; Execution error at overtone.at-at/at (at_at.clj:281).
+; Error: Unable to schedule job with uid my-unique-identifier, job is already scheduled.0
+```
+
 You can also schedule functions to occur periodically. Here we schedule the function to execute every second:
 
 ```clj

@@ -1,6 +1,12 @@
 # at-at Changelog
 
 ## 1.4.0-SNAPSHOT
+_9th January 2023_
+
+* Add optional uid for scheduled jobs - see docstrings for description \
+  When a job is being scheduled with the same uid throws an Exception error
+* Add uid to print-method for ScheduledJob
+* Some small printing fixes
 
 ## 1.3.1
 _10th March 2022_
