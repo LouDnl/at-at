@@ -31,6 +31,22 @@
 
 Simple ahead-of-time function scheduler. Allows you to schedule the execution of an anonymous function for a point in the future.
 
+### Adaption and addition
+
+This is an updated fork of [overtone/at-at](https://github.com/overtone/at-at). All credits go to [overtone](https://github.com/overtone).
+
+Commits were cherry-picked from open pull-requests and forks. \
+Credits:
+- [adamneilson](https://github.com/adamneilson)
+- [alekcz](https://github.com/alekcz)
+- [bmabey](https://github.com/bmabey)
+- [djui](https://github.com/djui)
+- [dmac](https://github.com/dmac)
+- [EdwardBetts](https://github.com/EdwardBetts)
+- [jwhitbeck](https://github.com/jwhitbeck)
+- [karolinepauls](https://github.com/karolinepauls)
+- [thomas-shares](https://github.com/thomas-shares)
+
 ### Basic Usage
 
 First pull in the lib:
