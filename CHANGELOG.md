@@ -1,11 +1,14 @@
 # at-at Changelog
 
-## 1.4.0-SNAPSHOT
+## 1.4.0
 _9th January 2023_
 
 * Add optional uid for scheduled jobs - see docstrings for description \
   When a job is being scheduled with the same uid throws an Exception error
 * Add uid to print-method for ScheduledJob
+* Add unit tests (run with `lein all test`)
+* Add license, plugins and profiles
+* Add config.edn for clj-kondo
 * Some small printing fixes
 
 ## 1.3.1
