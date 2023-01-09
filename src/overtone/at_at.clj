@@ -10,7 +10,8 @@
 (defrecord RecurringJob [id created-at ms-period initial-delay job pool-info desc scheduled?
                          re-throw-caught-exceptions?])
 (defrecord ScheduledJob [id created-at initial-delay job pool-info desc scheduled?
-                         re-throw-caught-exceptions?])
+                         re-throw-caught-exceptions?
+                         uid])
 
 (defn- format-date
   "Format date object as a string such as: 15:23:35s"
@@ -35,8 +36,9 @@
                  ", ms-period: " (:ms-period obj)
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">"
-                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj))))
+                 ", scheduled? " @(:scheduled? obj)
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj)
+                 ">")))
 
 (defmethod print-method ScheduledJob
   [obj ^Writer w]
@@ -44,8 +46,10 @@
                  ", created-at: " (format-date (:created-at obj))
                  ", initial-delay: " (:initial-delay obj)
                  ", desc: \"" (:desc obj) "\""
-                 ", scheduled? " @(:scheduled? obj) ">"
-                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj))))
+                 ", scheduled? " @(:scheduled? obj)
+                 ", uid: " (:uid obj)
+                 ", re-throw-caught-exceptions? " (:re-throw-caught-exceptions? obj)
+                  ">")))
 
 (defmethod pprint/simple-dispatch PoolInfo [this] (pr this))
 (defmethod pprint/simple-dispatch MutablePool [this] (pr this))
@@ -133,7 +137,7 @@
 (defn- schedule-at
   "Schedule the fun to execute once in the pool-info's pool after the
   specified initial-delay. Returns a ScheduledJob record."
-  [pool-info fun initial-delay desc re-throw-caught-exceptions?]
+  [pool-info fun initial-delay desc re-throw-caught-exceptions? uid]
   (let [initial-delay (long initial-delay)
         ^ScheduledThreadPoolExecutor t-pool (:thread-pool pool-info)
         jobs-ref      (:jobs-ref pool-info)
@@ -153,7 +157,8 @@
                                                      pool-info
                                                      desc
                                                      (atom true)
-                                                     re-throw-caught-exceptions?)]
+                                                     re-throw-caught-exceptions?
+                                                     uid)]
                          (commute jobs-ref assoc id job-info)
                          job-info))]
     (deliver job-info-prom job-info)
@@ -236,6 +241,22 @@
   []
   (System/currentTimeMillis))
 
+(declare scheduled-jobs)
+
+(defn- scheduled?!
+  "## Checks if a job is already scheduled by its uid
+   Returns true if so, false if not"
+  [uid pool]
+  (try
+    (apply boolean
+           (keep
+            (fn [job]
+              (when
+               (= (:uid job) uid)
+                true))
+            (scheduled-jobs pool)))
+    (catch Exception _ false)))
+
 (defn at
   "Schedules fun to be executed at ms-time (in milliseconds).
   Use (now) to get the current time in ms.
@@ -244,13 +265,20 @@
   (at (+ 1000 (now))
       #(println \"hello from the past\")
       pool
-      :desc \"Message from the past\") ;=> prints 1s from now"
-  [ms-time fun pool & {:keys [desc re-throw-caught-exceptions?]
+      :desc \"Message from the past\"
+      :uid unique identifier as string (optional)) ;=> prints 1s from now"
+  [ms-time fun pool & {:keys [desc re-throw-caught-exceptions? uid]
                        :or {desc ""
-                            re-throw-caught-exceptions? true}}]
+                            re-throw-caught-exceptions? true
+                            uid false}}]
   (let [initial-delay (- ms-time (now))
-        pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions?)))
+        pool-info  @(:pool-atom pool)
+        scheduled? (scheduled?! uid pool)]
+    (if-not uid
+      (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions? (str (gensym)))
+      (if-not scheduled?
+        (schedule-at pool-info fun initial-delay desc re-throw-caught-exceptions? uid)
+        (throw (Exception. (str "Error: Unable to schedule job with uid " uid ", job is already scheduled.")))))))
 
 (defn after
   "Schedules fun to be executed after delay-ms (in
@@ -260,12 +288,19 @@
   (after 1000
       #(println \"hello from the past\")
       pool
-      :desc \"Message from the past\") ;=> prints 1s from now"
-  [delay-ms fun pool & {:keys [desc re-throw-caught-exceptions?]
+      :desc \"Message from the past\"
+      :uid unique identifier as string (optional)) ;=> prints 1s from now"
+  [delay-ms fun pool & {:keys [desc re-throw-caught-exceptions? uid]
                         :or {desc ""
-                             re-throw-caught-exceptions? true}}]
-  (let [pool-info  @(:pool-atom pool)]
-    (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions?)))
+                             re-throw-caught-exceptions? true
+                             uid false}}]
+  (let [pool-info  @(:pool-atom pool)
+        scheduled? (scheduled?! uid pool)]
+    (if-not uid
+      (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions? (str (gensym)))
+      (if-not scheduled?
+        (schedule-at pool-info fun delay-ms desc re-throw-caught-exceptions? uid)
+        (throw (Exception. (str "Error: Unable to schedule job with uid " uid ", job is already scheduled.")))))))
 
 (defn shutdown-pool!
   [pool-info strategy]
@@ -360,13 +395,14 @@
        "[RECUR] created: " (format-date (:created-at job))
        (format-start-time (+ (:created-at job) (:initial-delay job)))
        ", period: " (:ms-period job) "ms"
-       ",  desc: \""(:desc job) "\""))
+       ", desc: \""(:desc job) "\""))
 
 (defn- scheduled-job-string
   [job]
   (str "[" (:id job) "]"
        "[SCHED] created: " (format-date (:created-at job))
        (format-start-time (+ (:created-at job) (:initial-delay job)))
+       ", uid: \"" (:uid job) "\""
        ", desc: \"" (:desc job) "\""))
 
 (defn- job-string
