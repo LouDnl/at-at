@@ -1,0 +1,30 @@
+name: at-at leiningen unittests
+on: push
+
+jobs:
+  leinunit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Github Actions checkout
+      uses: actions/checkout@v3
+    - name: Github Actions setup java
+      uses: actions/setup-java@v3
+      with:
+        distribution: adopt
+        java-version: 11
+    - name: DeLaGuardo setup clojure
+      uses: DeLaGuardo/setup-clojure@9.5
+      with:
+        lein: latest
+    - name: Install dependencies
+      run: lein deps
+    - name: DeLaGuardo clojure lint action
+      uses: DeLaGuardo/clojure-lint-action@master
+      with:
+        clj-kondo-args: --lint src
+        # secrets.GITHUB_TOKEN is needed here
+        # to publish annotations back to github
+        # this action is not storing or sending it anywhere
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run tests
+      run: lein all test
