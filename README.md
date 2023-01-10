@@ -25,7 +25,22 @@
                                  / /_/ / /_ /_____/ /_/ / /_
                                  \__,_/\__/       \__,_/\__/
 
+## Project status
 
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.loud/at-at.svg)](https://clojars.org/org.clojars.loud/at-at)
+
+![Build](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leinbuild.yml)
+![Unittests](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leintest.yml?label=unittests)
+
+![Github Last Commit](https://shields.io/github/last-commit/LouDnl/at-at)
+![Github Issues](https://shields.io/github/issues/LouDnl/at-at)
+
+![Top Language](https://shields.io/github/languages/top/LouDnl/at-at)
+![License](https://shields.io/github/license/LouDnl/at-at)
+
+### Install
+
+Fetch at-at from github: https://github.com/LouDnl/at-at or pull from clojars: [`[org.clojars.loud/at-at "x.y.z"]`](https://clojars.org/org.clojars.loud/at-at/versions/)
 
 ### at-at
 
@@ -48,6 +63,7 @@ Credits:
 - [thomas-shares](https://github.com/thomas-shares)
 
 #### Unit testing
+
 Run `lein all test` to run all unit tests
 
 ### Basic Usage
@@ -146,10 +162,6 @@ You may forcefully reset the pool using the `:kill` strategy:
 ;; [6][RECUR] created: Thu 12:03:35s, period: 5000ms,  desc: "Alive task
 ;; [5][SCHED] created: Thu 12:03:32s, starts at: Thu 12:03:42s, desc: "Hello printer
 ```
-
-### Install
-
-Fetch at-at from github: https://github.com/overtone/at-at or pull from clojars: `[overtone/at-at "X.Y.Z"]`
 
 ### History
 
