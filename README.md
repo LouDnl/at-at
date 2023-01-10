@@ -29,6 +29,9 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/org.clojars.loud/at-at.svg)](https://clojars.org/org.clojars.loud/at-at)
 
+![Build](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leinbuild.yml)
+![Unittests](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leintest.yml?label=unittests)
+
 ![Github Last Commit](https://shields.io/github/last-commit/LouDnl/at-at)
 ![Github Issues](https://shields.io/github/issues/LouDnl/at-at)
 
