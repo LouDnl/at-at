@@ -1,9 +1,12 @@
 *
+!.github/
+!.github/workflows/
+!.github/workflows/**
 !src
 !src/**
 !test
 !test/**
-!.clj-kondo
+!.clj-kondo/
 !.clj-kondo/config.edn
 !LICENSE
 !README.md
