@@ -26,21 +26,32 @@
                                  \__,_/\__/       \__,_/\__/
 
 ## Project status
+|          | Master         | Develop      |
+| -------  | :-----         | :-----       |
+|          |                |              |
+| Build    | ![build][1]    | ![build][2]  |
+| Tests    | ![tests][3]    | ![tests][4]  |
+| Commit   | ![commit][5]   | ![commit][6] |
+| Tag      | ![tag][7]
+| License  | ![license][8]
+| Language | ![language][9]
+| Issues   | ![issues][10]
 
-[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.loud/at-at.svg)](https://clojars.org/org.clojars.loud/at-at)
-
-![Build](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leinbuild.yml)
-![Unittests](https://img.shields.io/github/actions/workflow/status/LouDnl/at-at/leintest.yml?label=unittests)
-
-![Github Last Commit](https://shields.io/github/last-commit/LouDnl/at-at)
-![Github Issues](https://shields.io/github/issues/LouDnl/at-at)
-
-![Top Language](https://shields.io/github/languages/top/LouDnl/at-at)
-![License](https://shields.io/github/license/LouDnl/at-at)
+[1]: https://github.com/LouDnl/at-at/actions/workflows/leinbuild.yml/badge.svg?branch=master
+[2]: https://github.com/LouDnl/at-at/actions/workflows/leinbuild.yml/badge.svg?branch=dev
+[3]: https://github.com/LouDnl/at-at/actions/workflows/leintest.yml/badge.svg?branch=master
+[4]: https://github.com/LouDnl/at-at/actions/workflows/leintest.yml/badge.svg?branch=dev
+[5]: https://shields.io/github/last-commit/LouDnl/at-at/master
+[6]: https://shields.io/github/last-commit/LouDnl/at-at/dev
+[7]: https://shields.io/github/v/tag/LouDnl/at-at?sort=semver
+[8]: https://shields.io/github/license/LouDnl/at-at
+[9]: https://shields.io/github/languages/top/LouDnl/at-at
+[10]: https://shields.io/github/issues/LouDnl/at-at
 
 ### Install
 
-Fetch at-at from github: https://github.com/LouDnl/at-at or pull from clojars: [`[org.clojars.loud/at-at "x.y.z"]`](https://clojars.org/org.clojars.loud/at-at/versions/)
+Fetch at-at from github: https://github.com/LouDnl/at-at or pull from clojars: \
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.loud/at-at.svg)](https://clojars.org/org.clojars.loud/at-at)
 
 ### at-at
 
@@ -101,8 +112,8 @@ If you want a scheduled function to be unique, it is possible to pass a uid stri
 Will throw an Exception error when you try to schedule a job with the same uid:
 
 ```clj
-(after 1000 #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; schedules function
-(at (+ 1000 (now)) #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; will throw an Execution error
+(after 10000 #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; schedules function
+(at (+ 10000 (now)) #(println "hello from the past!") my-pool :uid "my-unique-identifier") ; will throw an Execution error
 ; Execution error at overtone.at-at/at (at_at.clj:281).
 ; Error: Unable to schedule job with uid my-unique-identifier, job is already scheduled.0
 ```
@@ -159,20 +170,18 @@ You may forcefully reset the pool using the `:kill` strategy:
 (after 10000 #(println "hello") tp :desc "Hello printer")
 (every 5000 #(println "I am still alive!") tp :desc "Alive task")
 (show-schedule tp)
-;; [6][RECUR] created: Thu 12:03:35s, period: 5000ms,  desc: "Alive task
-;; [5][SCHED] created: Thu 12:03:32s, starts at: Thu 12:03:42s, desc: "Hello printer
+;; [6][RECUR] created: Thu 12:03:35s, period: 5000ms, desc: "Alive task
+;; [5][SCHED] created: Thu 12:03:32s, starts at: Thu 12:03:42s, uid: "G__441", desc: "Hello printer
 ```
 
 ### History
 
 at-at was extracted from the awesome music making wonder that is Overtone (http://github.com/overtone/overtone)
 
-
 ### Authors
 
 * Sam Aaron
 * Jeff Rose
 * Michael Neale
-
 
 (Ascii art borrowed from http://www.sanitarium.net/jokes/getjoke.cgi?132)
