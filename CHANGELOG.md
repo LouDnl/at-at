@@ -1,5 +1,13 @@
 # at-at Changelog
 
+## 1.5.0
+_22nd January 2023_
+
+* Add util namespace, see [UTIL.md](doc/UTIL.md)
+  - add functions for parsing java.time objects
+  - supports LocalTime, LocalDateTime and Instant
+  - add function for parsing time strings
+
 ## 1.4.0
 _9th January 2023_
 

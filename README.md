@@ -174,6 +174,9 @@ You may forcefully reset the pool using the `:kill` strategy:
 ;; [5][SCHED] created: Thu 12:03:32s, starts at: Thu 12:03:42s, uid: "G__441", desc: "Hello printer
 ```
 
+### overtone.at-at.util
+See [UTIL.md](doc/UTIL.md) for more information
+
 ### History
 
 at-at was extracted from the awesome music making wonder that is Overtone (http://github.com/overtone/overtone)
