@@ -2,7 +2,7 @@
   {:author "LouD"
    :last-update "22-01-2023"
    :doc "This namespaces contains util functions for parsing time strings, java.time LocalTime LocalDateTime and Instant objects for scheduling with /at and /after"}
-  (:require [clojure.string :as string])
+  (:require [clojure.string :refer [split]])
   (:import [java.time
             Instant LocalDate LocalDateTime LocalTime ZoneId]
            [java.time.format DateTimeFormatter]
@@ -31,7 +31,7 @@
    * (from-string \"11.30PM\" :locale \"en,UK\" :after true) ;=> 41160551"
   [time & {:keys [locale after] :or {locale nil after false}}]
   (let [format (if (some? locale) "hh.mma" "HH:mm")
-        locale (if (some? locale) (string/split locale #",") ["nl" "NL"])
+        locale (if (some? locale) (split locale #",") ["nl" "NL"])
         ;time   (re-seq #"[0-9\.\:]{5}|[APM]{2}" time) ; ("10" "20" AM) or ("23" "40")
         today (LocalDate/now)
         zone  (ZoneId/systemDefault)
