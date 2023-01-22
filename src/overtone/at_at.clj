@@ -181,10 +181,10 @@
       (loop [jobs jobs]
         (doseq [job jobs]
           (when (and @(:scheduled? job)
-                     (let [^java.util.concurrent.Future job (:job job)]
+                     (let [job (:job job)]
                        (or
-                        (.isCancelled job)
-                        (.isDone job))))
+                        (future-cancelled? job)
+                        (future-done? job))))
                (reset! (:scheduled? job) false)))
         (when-let [jobs (filter (fn [j] @(:scheduled? j)) jobs)]
           (Thread/sleep 500)
