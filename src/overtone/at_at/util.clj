@@ -47,11 +47,11 @@
 
 (defn from-local-time
   "### Returns the supplied java.date.LocalTime object as epoch milliseconds
-       ### Or milliseconds until if supplied with :after true
+   ### Or milliseconds until if supplied with :after true
 
-       Arguments:
-       * time   - java.date.LocalTime required
-       * :after - boolean optional, default is false"
+   Arguments:
+   * time   - java.date.LocalTime required
+   * :after - boolean optional, default is false"
   [^LocalTime time & {:keys [after] :or {after false}}]
   (->> time
        (LocalDateTime/of (LocalDate/now))
@@ -70,11 +70,11 @@
 
 (defn from-local-date-time
   "### Returns the supplied java.date.LocalDateTime object as epoch milliseconds
-       ### Or milliseconds until if supplied with :after true
+   ### Or milliseconds until if supplied with :after true
 
-       Arguments:
-       * time   - java.date.LocalDateTime required
-       * :after - boolean optional, default is false"
+   Arguments:
+   * time   - java.date.LocalDateTime required
+   * :after - boolean optional, default is false"
   [^LocalDateTime date-time & {:keys [after] :or {after false}}]
   (-> date-time
       (#(.toInstant % (.getOffset (.getRules (ZoneId/systemDefault)) %)))
@@ -90,11 +90,11 @@
 
 (defn from-instant
   "### Returns the supplied java.date.Instant object as epoch milliseconds
-       ### Or milliseconds until if supplied with :after true
+   ### Or milliseconds until if supplied with :after true
 
-       Arguments:
-       * time   - java.date.Instant required
-       * :after - boolean optional, default is false"
+   Arguments:
+   * time   - java.date.Instant required
+   * :after - boolean optional, default is false"
   [^Instant instant & {:keys [after] :or {after false}}]
   (-> instant
       (.toEpochMilli)
