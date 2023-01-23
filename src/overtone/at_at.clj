@@ -181,9 +181,10 @@
       (loop [jobs jobs]
         (doseq [job jobs]
           (when (and @(:scheduled? job)
-                      (or
-                       (.isCancelled ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask (:job job))
-                       (.isDone ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask (:job job))))
+                     (let [job (:job job)]
+                       (or
+                        (future-cancelled? job)
+                        (future-done? job))))
                (reset! (:scheduled? job) false)))
         (when-let [jobs (filter (fn [j] @(:scheduled? j)) jobs)]
           (Thread/sleep 500)
@@ -345,7 +346,7 @@
           pool-info (:pool-info job-info)
           pool      (:thread-pool pool-info) ; NOTE - unused
           jobs-ref  (:jobs-ref pool-info)]
-      (.cancel ^java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask job cancel-immediately?)
+      (.cancel ^java.util.concurrent.Future job cancel-immediately?)
       (reset! (:scheduled? job-info) false)
       (dosync
        (let [job (get @jobs-ref id)]
