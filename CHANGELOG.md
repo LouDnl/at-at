@@ -1,5 +1,15 @@
 # at-at Changelog
 
+## 1.5.1
+_25th January 2023_
+
+* Use public class for reflection - fixes bb compatibility (thanks @borkdude)
+* Use core functions (thanks @borkdude)
+* Add from-sql-time, from-sql-timestamp and get-locale-options to util
+* Rework from-string to accept any locale and format when supplied
+* Update / fix docstrings
+* Update [UTIL.md](doc/UTIL.md) accordingly
+
 ## 1.5.0
 _22nd January 2023_
 
