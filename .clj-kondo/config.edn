@@ -1,4 +1,5 @@
 {:linters {:unused-binding {:level :off}
            :unused-private-var {:level :off}
            :clojure-lsp/unused-public-var {:exclude-regex #{"overtone.*"}}}
- :skip-comments true}
+ :skip-comments true
+ :output {:exclude-files ["clients.*" "dev-resources.*" "docs-code.*"]}}
