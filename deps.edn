@@ -1,0 +1,44 @@
+{:paths     ["src" "resources"],
+
+ :mvn/repos {"central" {:url "https://repo1.maven.org/maven2/"}  ;; Fix found here: https://github.com/juxt/pack.alpha/issues/7
+             "clojars" {:url "https://repo.clojars.org/"}
+             "jitpack" {:url "https://jitpack.io"}}  ;; adds jitpack so we can import github repositories
+
+ :deps      {; Clojure
+             org.clojure/clojure {:mvn/version "1.10.1"}}   ;; Clojure all by itself (https://github.com/clojure/clojure | https://clojure.org/guides/deps_and_cli)
+
+
+ :aliases   {:build        {:extra-deps {org.clojure/tools.deps        {:mvn/version "0.18.1354"},
+                                         aero/aero                     {:mvn/version "1.1.6"},
+                                         io.github.clojure/tools.build {:mvn/version "0.9.4"}}
+                            :ns-default build}
+             :dev          {:jvm-opts    ["-XX:-OmitStackTraceInFastThrow"]  ;; missing stacktraces
+                            :extra-paths ["dev/src" "dev/resources"]
+                            :extra-deps  {org.clojure/tools.deps               {:mvn/version "0.18.1354"},  ;; A functional API for transitive dependency graph expansion and the creation of classpaths (https://github.com/clojure/tools.deps)
+                                          org.clojure/tools.namespace          {:mvn/version "1.4.4"},      ;; Tools for managing namespaces in Clojure (https://github.com/clojure/tools.namespace)
+                                          com.github.jpmonettas/flow-storm-dbg {:mvn/version "3.6.10"},     ;; A tracing debugger for Clojure and Clojure(Script) (https://github.com/jpmonettas/flow-storm-debugger)
+                                          clj-commons/pomegranate              {:mvn/version "1.2.23"       ;; Enables hotloading of extra-deps (https://github.com/clj-commons/pomegranate)
+                                                                                :exclusions  [commons-codec/commons-codec
+                                                                                              org.apache.httpcomponents/httpclient
+                                                                                              org.apache.httpcomponents/httpcore]}}}
+
+             ; timeout 600 clj -X:test :patterns '["^at-at.*$"]' || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+             ; clj -X:test :patterns '["^at-at.*$"]'
+             ; clj -X:test:test/v1.6:test/v1.7 :patterns '["^at-at.*$"]'
+             ; clj -X:test :nses ["at-at.recurring-job" "at-at.scheduled-job"]
+             :test         {:extra-paths ["test"] ; BUG: IS NOT FINISHING THE TESTS
+                            :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                                                :git/sha "dfb30dd"}}
+                            :main-opts   ["-m" "cognitect.test-runner"]
+                            :exec-fn     cognitect.test-runner.api/test}
+             :test/v1.6    {:extra-deps {org.clojure/clojure {:mvn/version "1.6.0"}}}
+             :test/v1.7    {:extra-deps {org.clojure/clojure {:mvn/version "1.7.0"}}}
+             :test/v1.8    {:extra-deps {org.clojure/clojure {:mvn/version "1.8.0"}}}
+             :test/v1.9    {:extra-deps {org.clojure/clojure {:mvn/version "1.9.0"}}}
+             :test/v1.10   {:extra-deps {org.clojure/clojure {:mvn/version "1.10.0"}}}
+             :test/v1.10.1 {:extra-deps {org.clojure/clojure {:mvn/version "1.10.1"}}}
+             :test/v1.10.2 {:extra-deps {org.clojure/clojure {:mvn/version "1.10.2"}}}
+             :test/v1.10.3 {:extra-deps {org.clojure/clojure {:mvn/version "1.10.3"}}}
+             :test/v1.11   {:extra-deps {org.clojure/clojure {:mvn/version "1.11.0"}}}
+             :test/v1.11.1 {:extra-deps {org.clojure/clojure {:mvn/version "1.11.1"}}}
+             :test/alpha   {:extra-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha1"}}}}}

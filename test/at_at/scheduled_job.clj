@@ -106,4 +106,4 @@
                   :desc "description - job with after"
                   :uid "scheduled-after-with-uid")))))
 
-(at-at/stop-and-reset-pool! my-pool)
+(deftest stoppool (is (= (type (at-at/stop-and-reset-pool! my-pool)) overtone.at_at.PoolInfo)))

@@ -44,4 +44,4 @@
              (at-at/stop id my-pool)
              scheduled?)))))
 
-(at-at/stop-and-reset-pool! my-pool)
+(deftest stoppool (is (= (type (at-at/stop-and-reset-pool! my-pool)) overtone.at_at.PoolInfo)))
